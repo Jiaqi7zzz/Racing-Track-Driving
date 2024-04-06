@@ -1,0 +1,13 @@
+*.png
+*.jpg
+*.zip
+*.rar
+*.log
+*.aux
+*.synctex.gz 
+*.toc 
+*.cls 
+*.sty 
+*.blg 
+*bbl 
+*.run.pdf
