@@ -1,2 +1,2 @@
-# ARV-based-on-RRT
-Our goal is to recover the paper "LOCAL TRAJECTORY PLANNING FOR AUTONOMOUS RACING VEHICLESBASED ON THE RAPIDLY-EXPLORING RANDOM TREE ALGORITHM".
+# Racing Track Driving
+We are committed to implementing path planning and control for race cars under the condition of minimum time.
