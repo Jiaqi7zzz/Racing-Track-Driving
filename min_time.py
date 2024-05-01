@@ -7,7 +7,6 @@ import pandas as pd
 def opt_time(reftrack:      np.ndarray,
              coeffs_x:      np.ndarray,
              coeffs_y:      np.ndarray,
-             norm_vectors:  np.ndarray,
              pars:          dict
              )       ->     tuple:
     
@@ -46,7 +45,7 @@ def opt_time(reftrack:      np.ndarray,
                     因此以三个点为例 这里就会有三段间隔 长度为四的数组
     '''
 
-    step_size           = pars["stepsize_opts"]
+    step_size           = pars["stepsize_opts"] # 取3.0
     steps               = np.arange(points_num + 1)
     intervals           = points_num
     # s_opt               = np.asarray(closed_discrete_points) * step_size
@@ -167,24 +166,24 @@ def opt_time(reftrack:      np.ndarray,
     '''
     g = pars["veh_params"]["g"]
     mass = pars["veh_params"]["mass"]
-    front_proportion = pars["veh_params"]["frontwheel"] / pars["veh_params"]["wheelsbase"]
-    rear_proportion = pars["veh_params"]["rearwheel"] / pars["veh_params"]["wheelsbase"]
+    # front_proportion = pars["veh_params"]["frontwheel"] / pars["veh_params"]["wheelsbase"]
+    # rear_proportion = pars["veh_params"]["rearwheel"] / pars["veh_params"]["wheelsbase"]
 
     kappa = ca.SX.sym('kappa')
     f_xdrag = pars["veh_params"]["dragcoeff"] * v ** 2
 
     f_xroll = mass * g * pars["veh_params"]["c_roll"] # 滚动阻力系数
 
-    f_xroll_fl = 0.5 * f_xroll * front_proportion
-    f_xroll_fr = 0.5 * f_xroll * front_proportion
-    f_xroll_rl = 0.5 * f_xroll * rear_proportion
-    f_xroll_rr = 0.5 * f_xroll * rear_proportion
+    f_xroll_fl = 0.5 * f_xroll * pars["veh_params"]["wheelbase_rear"] / pars["veh_params"]["wheelbase"]
+    f_xroll_fr = 0.5 * f_xroll * pars["veh_params"]["wheelbase_rear"] / pars["veh_params"]["wheelbase"]
+    f_xroll_rl = 0.5 * f_xroll * pars["veh_params"]["wheelbase_front"] / pars["veh_params"]["wheelbase"]
+    f_xroll_rr = 0.5 * f_xroll * pars["veh_params"]["wheelbase_front"] / pars["veh_params"]["wheelbase"]
 
     f_zstat = mass * g
-    f_zstat_fl = 0.5 * f_zstat * front_proportion
-    f_zstat_fr = 0.5 * f_zstat * front_proportion
-    f_zstat_rl = 0.5 * f_zstat * rear_proportion
-    f_zstat_rr = 0.5 * f_zstat * rear_proportion
+    f_zstat_fl = 0.5 * f_zstat * pars["veh_params"]["wheelbase_rear"] / pars["veh_params"]["wheelbase"]
+    f_zstat_fr = 0.5 * f_zstat * pars["veh_params"]["wheelbase_rear"] / pars["veh_params"]["wheelbase"]
+    f_zstat_rl = 0.5 * f_zstat * pars["veh_params"]["wheelbase_front"] / pars["veh_params"]["wheelbase"]
+    f_zstat_rr = 0.5 * f_zstat * pars["veh_params"]["wheelbase_front"] / pars["veh_params"]["wheelbase"]
 
     f_zlift_fl = 0.5 * pars["veh_params"]["liftcoeff_front"] * v ** 2
     f_zlift_fr = 0.5 * pars["veh_params"]["liftcoeff_front"] * v ** 2
@@ -219,18 +218,18 @@ def opt_time(reftrack:      np.ndarray,
                                 (v * ca.cos(beta) + 0.5 * pars["veh_params"]["width_rear"] * omega_z))
     
     # 轮胎横向力(魔术公式)
-    f_y_fl = pars["opt_params"]["mu"] * f_z_fl * (1 + pars["veh_params"]["epsilon_front"] * f_z_fl / pars["veh_params"]["f_z0"]) * ca.sin()
+    # f_y_fl = pars["opt_params"]["mu"] * f_z_fl * (1 + pars["veh_params"]["eps_front"] * f_z_fl / pars["veh_params"]["f_z0"]) * ca.sin()
     
-    f_y_fl = (pars["opt_params"]["mu"] * f_z_fl * (1 + pars["veh_params"]["eps_front"] * f_z_fl / pars["veh_params"]["f_z0"])
+    f_y_fl = (pars["veh_params"]["mu"] * f_z_fl * (1 + pars["veh_params"]["eps_front"] * f_z_fl / pars["veh_params"]["f_z0"])
               * ca.sin(pars["veh_params"]["C_front"] * ca.atan(pars["veh_params"]["B_front"] * alpha_fl - pars["veh_params"]["E_front"]
                                                  * (pars["veh_params"]["B_front"] * alpha_fl - ca.atan(pars["veh_params"]["B_front"] * alpha_fl)))))
-    f_y_fr = (pars["opt_params"]["mu"] * f_z_fr * (1 + pars["veh_params"]["eps_front"] * f_z_fr / pars["veh_params"]["f_z0"])
+    f_y_fr = (pars["veh_params"]["mu"] * f_z_fr * (1 + pars["veh_params"]["eps_front"] * f_z_fr / pars["veh_params"]["f_z0"])
               * ca.sin(pars["veh_params"]["C_front"] * ca.atan(pars["veh_params"]["B_front"] * alpha_fr - pars["veh_params"]["E_front"]
                                                  * (pars["veh_params"]["B_front"] * alpha_fr - ca.atan(pars["veh_params"]["B_front"] * alpha_fr)))))
-    f_y_rl = (pars["opt_params"]["mu"] * f_z_rl * (1 + pars["veh_params"]["eps_rear"] * f_z_rl / pars["veh_params"]["f_z0"])
+    f_y_rl = (pars["veh_params"]["mu"] * f_z_rl * (1 + pars["veh_params"]["eps_rear"] * f_z_rl / pars["veh_params"]["f_z0"])
               * ca.sin(pars["veh_params"]["C_rear"] * ca.atan(pars["veh_params"]["B_rear"] * alpha_rl - pars["veh_params"]["E_rear"]
                                                 * (pars["veh_params"]["B_rear"] * alpha_rl - ca.atan(pars["veh_params"]["B_rear"] * alpha_rl)))))
-    f_y_rr = (pars["opt_params"]["mu"] * f_z_rr * (1 + pars["veh_params"]["eps_rear"] * f_z_rr / pars["veh_params"]["f_z0"])
+    f_y_rr = (pars["veh_params"]["mu"] * f_z_rr * (1 + pars["veh_params"]["eps_rear"] * f_z_rr / pars["veh_params"]["f_z0"])
               * ca.sin(pars["veh_params"]["C_rear"] * ca.atan(pars["veh_params"]["B_rear"] * alpha_rr - pars["veh_params"]["E_rear"]
                                                 * (pars["veh_params"]["B_rear"] * alpha_rr - ca.atan(pars["veh_params"]["B_rear"] * alpha_rr)))))
     
@@ -263,12 +262,12 @@ def opt_time(reftrack:      np.ndarray,
                               + (f_y_rl + f_y_rr) * ca.cos(beta) + (f_y_fl + f_y_fr) * ca.cos(delta - beta)
                               + f_xdrag * ca.sin(beta)) / (mass * v))
     
-    domega_z = (sf / pars["veh_params"]["I_z"]) * ((f_x_rr - f_x_rl) * pars["veh_params"]["track_width_rear"] / 2
+    domega_z = (sf / pars["veh_params"]["I_z"]) * ((f_x_rr - f_x_rl) * pars["veh_params"]["width_rear"] / 2
                                     - (f_y_rl + f_y_rr) * pars["veh_params"]["wheelbase_rear"]
                                     + ((f_x_fr - f_x_fl) * ca.cos(delta)
-                                       + (f_y_fl - f_y_fr) * ca.sin(delta)) * pars["veh_params"]["track_width_front"] / 2
+                                       + (f_y_fl - f_y_fr) * ca.sin(delta)) * pars["veh_params"]["width_front"] / 2
                                     + ((f_y_fl + f_y_fr) * ca.cos(delta)
-                                       + (f_x_fl + f_x_fr) * ca.sin(delta)) * pars["veh_params"]["track_width_front"])
+                                       + (f_x_fl + f_x_fr) * ca.sin(delta)) * pars["veh_params"]["width_front"])
     
     dx = ca.vertcat(dn, dxi, dv, dbeta, domega_z) / x_s
 
@@ -406,8 +405,8 @@ def opt_time(reftrack:      np.ndarray,
 
         Xk = ca.MX.sym('X_' + str(k + 1), 5)
         w.append(Xk)
-        n_min = (-w_tr_right_interp(k + 1) + pars["optim_opts"]["width_opt"] / 2.0) / n_s
-        n_max = (w_tr_left_interp(k + 1) - pars["optim_opts"]["width_opt"] / 2.0) / n_s
+        n_min = (-w_tr_right_interp(k + 1) + pars["veh_params"]["width"] / 2.0) / n_s
+        n_max = (w_tr_left_interp(k + 1) - pars["veh_params"]["width"] / 2.0) / n_s
         lbw.append([n_min, xi_min, v_min, beta_min, omega_z_min])
         ubw.append([n_max, xi_max, v_max, beta_max, omega_z_max])
         w0.append([0, 0, v_0, 0, 0])
@@ -426,7 +425,7 @@ def opt_time(reftrack:      np.ndarray,
         # equ.8
         g.append(((f_y_flk + f_y_frk) * ca.cos(Uk[0] * delta_s) + f_y_rlk + f_y_rrk
                   + (f_x_flk + f_x_frk) * ca.sin(Uk[0] * delta_s))
-                 * pars["veh_params"]["cog_z"] / ((pars["veh_params"]["track_width_front"] + pars["veh_params"]["track_width_rear"]) / 2) - Uk[3] * gamma_y_s)
+                 * pars["veh_params"]["cog_z"] / ((pars["veh_params"]["width_front"] + pars["veh_params"]["width_rear"]) / 2) - Uk[3] * gamma_y_s)
         lbg.append([0.0])
         ubg.append([0.0])
 
