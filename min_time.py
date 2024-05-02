@@ -17,7 +17,8 @@ def opt_time(reftrack:      np.ndarray,
     # number of all the points
     points_num = reftrack.shape[0]
     discrete_points = np.arange(points_num)
-
+    a_interp = None
+    
     # spline length and heading&kappa
     reftrack_length : np.ndarray = tph.calc_spline_lengths.calc_spline_lengths(coeffs_x=coeffs_x , coeffs_y=coeffs_y)
     
@@ -534,3 +535,6 @@ def opt_time(reftrack:      np.ndarray,
     x_opt.to_csv('./data/x_opt.csv', index = False)
     u_opt.to_csv('./data/u_opt.csv', index = False)
     t_opt.to_csv('./data/t_opt.csv', index = False)
+    
+    # '-'存疑
+    return -x_opt[:-1,0], x_opt[:-1,2]
