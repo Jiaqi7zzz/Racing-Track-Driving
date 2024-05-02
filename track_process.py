@@ -36,6 +36,8 @@ def import_track(file_path: str,
     if wid_track_min < wid_veh:
         print("WARNING: Minimum track width %.2fm is close to or smaller than vehicle width!" % np.amin(wid_track_min))
     
+    reftrack = np.vstack((reftrack, reftrack[0, :]))
+    
     return reftrack
         
 def prep_track(reftrack: np.ndarray,
