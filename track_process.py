@@ -65,7 +65,7 @@ def prep_track(reftrack: np.ndarray,
                              debug= False)
     
     closed_reftrack = np.vstack((reftrack_interp[:, :2], reftrack_interp[0, :2]))
-    coeffs_x, coeffs_y, a_interp, normvec_interp = tph.calc_splines.cal_splines(path= closed_reftrack)
+    coeffs_x, coeffs_y, a_interp, normvec_interp = tph.calc_splines.calc_splines(path= closed_reftrack)
     
     # NOTES: return value is not close
     return  reftrack_interp, normvec_interp, a_interp, coeffs_x, coeffs_y

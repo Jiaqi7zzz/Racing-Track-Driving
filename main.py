@@ -1,18 +1,18 @@
 import numpy as np
 import trajectory_planning_helpers as tph
-from track_process import import_track
-from track_process import prep_track
-from track_process import check_track
+from track_process import import_track, prep_track, check_track
 from min_time import opt_time
 import pandas as pd
 import matplotlib.pyplot as plt
 import result_plot
+import warnings
 
+warnings.filterwarnings("ignore")
 # 设置路径导入选项
 import_track_opts = {"flip_imp_track": False,
                     }
 
-pars = {"curv_cal_opts":
+pars = {"curv_calc_opts":
             {"stepsize_curv_preview": 2.0,
              "stepsize_curv_review": 2.0,
              "stepsize_psi_preview": 1.0,
@@ -20,7 +20,7 @@ pars = {"curv_cal_opts":
         "stepsize_opts": 3.0,
         "opt_params":
             {"r_delta": 10.0,
-             "r_f": 0.01,},
+             "r_F": 0.01,},
         "veh_params":
             {"g": 9.81,
              "mass": 1200.0,
@@ -58,10 +58,12 @@ pars = {"curv_cal_opts":
              "t_brake": 0.05,
              "t_drive": 0.05,
              "curvlim": 0.12,
+             "c_roll": 0.013,
+             "f_brake_max": 20000.0
              }}
 
-reg_smooth_opts = {"k_reg": 3.0,
-                   "s_reg": 10.0}
+reg_smooth_opts = {"k_reg": 3,
+                   "s_reg": 10}
 
 stepsize_opts = {"stepsize_prep": 1.0,
                "stepsize_reg": 3.0,
@@ -76,10 +78,14 @@ reftrack_init = import_track(file_path = track_file_path,
 reftrack_interp, normvec_interp, a_interp, coeffs_x, coeffs_y = prep_track(reftrack= reftrack_init, 
                                                                            reg_smooth_opts= reg_smooth_opts, 
                                                                            stepsize_opts= stepsize_opts)
+
+# print(reftrack_interp, coeffs_x, coeffs_y)
+
 alpha_opt, v_opt = opt_time(reftrack= reftrack_interp,
                              coeffs_x= coeffs_x,
                              coeffs_y= coeffs_y,
                              pars= pars)
+
 
 raceline_interp, a_opt, coeffs_x_opt, coeffs_y_opt, spline_inds_opt_interp, t_vals_opt_interp, s_points_opt_interp,\
     spline_lengths_opt, el_lengths_opt_interp = tph.creat_raceline.creat_raceline(refline = reftrack_interp[:,:2],

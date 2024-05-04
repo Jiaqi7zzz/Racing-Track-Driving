@@ -2,7 +2,7 @@ import numpy as np
 import casadi as ca
 import trajectory_planning_helpers as tph
 import pandas as pd
-
+import tqdm
 
 def opt_time(reftrack:      np.ndarray,
              coeffs_x:      np.ndarray,
@@ -25,7 +25,7 @@ def opt_time(reftrack:      np.ndarray,
     reftrack_kappa = tph.calc_head_curv_num.calc_head_curv_num(path=reftrack[:,:2],
                                                                el_lengths=reftrack_length,
                                                                is_closed=True,
-                                                               stepsize_curv_preview=pars["curv_cal_opts"]["stepsize_curv_preview"],
+                                                               stepsize_curv_preview=pars["curv_calc_opts"]["stepsize_curv_preview"],
                                                                stepsize_curv_review=pars["curv_calc_opts"]["stepsize_curv_review"],
                                                                stepsize_psi_preview=pars["curv_calc_opts"]["stepsize_psi_preview"],
                                                                stepsize_psi_review=pars["curv_calc_opts"]["stepsize_psi_review"],
@@ -35,8 +35,8 @@ def opt_time(reftrack:      np.ndarray,
     closed_reftrack_kappa = np.append(reftrack_kappa, reftrack_kappa[0])
     # discrete_points.append(discrete_points[0])
     closed_discrete_points = np.append(discrete_points, points_num)
-    w_tr_left = np.append(reftrack[:, 3], reftrack[0, 3])
-    w_tr_right = np.append(reftrack[:, 4], reftrack[0, 4])
+    w_tr_left = np.append(reftrack[:, 2], reftrack[0, 2])
+    w_tr_right = np.append(reftrack[:, 3], reftrack[0, 3])
 
     '''
     step opts:
@@ -100,7 +100,7 @@ def opt_time(reftrack:      np.ndarray,
 
     # v 为纵向速度，单位m/s
     v_n = ca.SX.sym('v_n')
-    v_s = 50.0
+    v_s = 50
     v = v_n * v_s
 
     # beta 为侧滑角，单位rad
@@ -165,7 +165,7 @@ def opt_time(reftrack:      np.ndarray,
     纵向加速度(ax)是纵向轮胎力的总和除以车辆质量。
     横向加速度(ay)是横向轮胎力的总和除以车辆质量。
     '''
-    g = pars["veh_params"]["g"]
+    gravity = pars["veh_params"]["g"]
     mass = pars["veh_params"]["mass"]
     # front_proportion = pars["veh_params"]["frontwheel"] / pars["veh_params"]["wheelsbase"]
     # rear_proportion = pars["veh_params"]["rearwheel"] / pars["veh_params"]["wheelsbase"]
@@ -173,14 +173,14 @@ def opt_time(reftrack:      np.ndarray,
     kappa = ca.SX.sym('kappa')
     f_xdrag = pars["veh_params"]["dragcoeff"] * v ** 2
 
-    f_xroll = mass * g * pars["veh_params"]["c_roll"] # 滚动阻力系数
+    f_xroll = mass * gravity * pars["veh_params"]["c_roll"] # 滚动阻力系数
 
     f_xroll_fl = 0.5 * f_xroll * pars["veh_params"]["wheelbase_rear"] / pars["veh_params"]["wheelbase"]
     f_xroll_fr = 0.5 * f_xroll * pars["veh_params"]["wheelbase_rear"] / pars["veh_params"]["wheelbase"]
     f_xroll_rl = 0.5 * f_xroll * pars["veh_params"]["wheelbase_front"] / pars["veh_params"]["wheelbase"]
     f_xroll_rr = 0.5 * f_xroll * pars["veh_params"]["wheelbase_front"] / pars["veh_params"]["wheelbase"]
 
-    f_zstat = mass * g
+    f_zstat = mass * gravity
     f_zstat_fl = 0.5 * f_zstat * pars["veh_params"]["wheelbase_rear"] / pars["veh_params"]["wheelbase"]
     f_zstat_fr = 0.5 * f_zstat * pars["veh_params"]["wheelbase_rear"] / pars["veh_params"]["wheelbase"]
     f_zstat_rl = 0.5 * f_zstat * pars["veh_params"]["wheelbase_front"] / pars["veh_params"]["wheelbase"]
@@ -252,10 +252,11 @@ def opt_time(reftrack:      np.ndarray,
     # --------------------------- DERIVATIVES ------------------------------------- #
     # ------------------------------------------------------------------------ #
     
+    sf = (1.0 - n * kappa) / (v * ca.cos(xi + beta))
     dn = sf * v * ca.sin(xi + beta)
     dxi = sf * omega_z - kappa
 
-    sf = (1 - n * kappa) / (v * ca.cos(xi + beta))
+
     dv = (sf / mass) * ((f_x_rl + f_x_rr) * ca.cos(beta) + (f_x_fl + f_x_fr) * ca.cos(delta - beta)
                         + (f_y_rl + f_y_rr) * ca.sin(beta) - (f_y_fl + f_y_fr) * ca.sin(delta - beta)
                         - f_xdrag * ca.cos(beta))
@@ -304,8 +305,9 @@ def opt_time(reftrack:      np.ndarray,
     f_fx      = ca.Function('f_fx', [x, u], [f_x_fl, f_x_fr, f_x_rl, f_x_rr], ['x', 'u'], ['f_x_fl', 'f_x_fr', 'f_x_rl', 'f_x_rr'])
     f_fy      = ca.Function('f_fy', [x, u], [f_y_fl, f_y_fr, f_y_rl, f_y_rr], ['x', 'u'], ['f_y_fl', 'f_y_fr', 'f_y_rl', 'f_y_rr'])
     f_fz      = ca.Function('f_fz', [x, u], [f_z_fl, f_z_fr, f_z_rl, f_z_rr], ['x', 'u'], ['f_z_fl', 'f_z_fr', 'f_z_rl', 'f_z_rr'])
-    f_a       = ca.Function('f_a' , [x, u], [a_x, a_y], ['x', 'u'], ['f_a_fl', 'f_a_fr', 'f_a_rl', 'f_a_rr'])
+    f_a       = ca.Function('f_a' , [x, u], [a_x, a_y], ['x', 'u'], ['a_x', 'a_y'])
     
+
     # ------------------------------------------------------------------------ #
     # --------------------------- NLP ------------------------------------- #
     # ------------------------------------------------------------------------ #
@@ -317,6 +319,7 @@ def opt_time(reftrack:      np.ndarray,
     lbw = []
     ubw = []
     J = 0
+    g = []
     lbg = []
     ubg = []
 
@@ -325,7 +328,7 @@ def opt_time(reftrack:      np.ndarray,
     u_opt = []
     ax_opt = []
     ay_opt = []
-
+    ec_opt = []
     dt_opt = []
     tf_opt = []
 
@@ -340,35 +343,39 @@ def opt_time(reftrack:      np.ndarray,
     b_safety = 0.0
     n_min = (-w_tr_right_interp(0) + pars["veh_params"]["width"] / 2 + b_safety) / n_s
     n_max = (w_tr_left_interp(0) - pars["veh_params"]["width"] / 2 - b_safety) / n_s
+
+    n_min = n_min.__float__()
+    n_max = n_max.__float__()
     
     # 初始化解变量和输出变量
     lbw.append([n_min, xi_min, v_min, beta_min, omega_z_min])
     ubw.append([n_max, xi_max, v_max, beta_max, omega_z_max])
-    w0.append([0, 0, v_0, 0, 0])
-    x_opt.append(Xk)
+    w0.append([0.0, 0.0, v_0, 0.0, 0.0])
+    x_opt.append(Xk * x_s)
     # step_size 就是优化的步长
     # h = np.diff(s_opt)
     h = np.array([step_size] * intervals)
 
     for k in range(intervals):
+        # print(len(w), len(w0))
         # 在每一段间隔内
         Uk = ca.MX.sym('U_' + str(k), 4) # 4是控制变量的维度
         w.append(Uk)
         lbw.append([delta_min, f_drive_min, f_brake_min, gamma_y_min])
         ubw.append([delta_max, f_drive_max, f_brake_max, gamma_y_max])
-        w0.append([0, 0, 0, 0])
+        w0.append([0.0, 0.0, 0.0, 0.0])
 
         Xc = []
         # Xc 是各插值点的状态
         for i in range(d):
-            Xkj = ca.MX.sym('X_' + str(k) + '_' + str(i))
+            Xkj = ca.MX.sym('X_' + str(k) + '_' + str(i), 5)
             Xc.append(Xkj)
             w.append(Xkj)
             lbw.append([-np.inf] * 5)
             ubw.append([np.inf] * 5)
             # lbw.append([n_min, xi_min, v_min, beta_min, omega_z_min])
             # ubw.append([n_max, xi_max, v_max, beta_max, omega_z_max])
-            w0.append([0, 0, v_0, 0, 0])
+            w0.append([0.0, 0.0, v_0, 0.0, 0.0])
         
         Xk_end = D[0] * Xk # 连续性方程
         
@@ -401,6 +408,7 @@ def opt_time(reftrack:      np.ndarray,
         for i in range(d):
             time += sf_opt[i]
         dt_opt.append(time)
+        ec_opt.append(Xk[2] * v_s * Uk[1] * f_drive_s * dt_opt[-1])
 
         # 每一个interval的最后，开启下一段的内容
 
@@ -408,9 +416,12 @@ def opt_time(reftrack:      np.ndarray,
         w.append(Xk)
         n_min = (-w_tr_right_interp(k + 1) + pars["veh_params"]["width"] / 2.0) / n_s
         n_max = (w_tr_left_interp(k + 1) - pars["veh_params"]["width"] / 2.0) / n_s
+        n_min = n_min.__float__()
+        n_max = n_max.__float__()
+
         lbw.append([n_min, xi_min, v_min, beta_min, omega_z_min])
         ubw.append([n_max, xi_max, v_max, beta_max, omega_z_max])
-        w0.append([0, 0, v_0, 0, 0])
+        w0.append([0.0, 0.0, v_0, 0.0, 0.0])
         g.append(Xk_end - Xk)
         lbg.append([0.0] * 5)
         ubg.append([0.0] * 5)
@@ -430,6 +441,11 @@ def opt_time(reftrack:      np.ndarray,
         lbg.append([0.0])
         ubg.append([0.0])
 
+        mu_fl = pars["veh_params"]["mu"]
+        mu_fr = pars["veh_params"]["mu"]
+        mu_rl = pars["veh_params"]["mu"]
+        mu_rr = pars["veh_params"]["mu"]
+        
         # equ.10
         g.append(((f_x_flk / (mu_fl * f_z_flk)) ** 2 + (f_y_flk / (mu_fl * f_z_flk)) ** 2))
         g.append(((f_x_frk / (mu_fr * f_z_frk)) ** 2 + (f_y_frk / (mu_fr * f_z_frk)) ** 2))
@@ -443,10 +459,7 @@ def opt_time(reftrack:      np.ndarray,
         lbg.append([-np.inf])
         ubg.append([pars["veh_params"]["max_power"] / (f_drive_s * v_s)])
 
-        mu_fl = pars["veh_params"]["mu"]
-        mu_fr = pars["veh_params"]["mu"]
-        mu_rl = pars["veh_params"]["mu"]
-        mu_rr = pars["veh_params"]["mu"]
+
 
         # equ.12
         # g.append(Uk[1] * Uk[2])
@@ -454,11 +467,12 @@ def opt_time(reftrack:      np.ndarray,
         # ubg.append([0.0])
         g.append(Uk[1] * Uk[2])
         lbg.append([-20000.0 / (f_drive_s * f_brake_s)])
+        # lbg.append([0.0])
         ubg.append([0.0])
 
         # equ.14
         if k > 0:
-            sigma = (1 - kappa_interp(k) * Xk[3] * n_s) / (Xk[0] * v_s)
+            sigma = (1 - kappa_interp(k) * Xk[0] * n_s) / (Xk[2] * v_s)
             g.append((Uk - w[1 + (k - 1) * 5]) / (h[k - 1] * sigma))
             lbg.append([delta_min / (pars["veh_params"]["t_delta"]), -np.inf, f_brake_min / (pars["veh_params"]["t_brake"]), -np.inf])
             ubg.append([delta_max / (pars["veh_params"]["t_delta"]), f_drive_max / (pars["veh_params"]["t_drive"]), np.inf, np.inf])
@@ -475,12 +489,15 @@ def opt_time(reftrack:      np.ndarray,
         tf_opt.extend([f_x_rlk, f_y_rlk, f_z_rlk, f_x_rrk, f_y_rrk, f_z_rrk])
         ax_opt.append(a_x_k)
         ay_opt.append(a_y_k)
-
+    
     # 所有循环结束，Xk为最后一项
     # 初始条件等于终止条件
     g.append(w[0] - Xk)
-    lbg.append([0.0 for i in range(5)])
-    ubg.append([0.0 for i in range(5)])
+    # lbg.append([0.0 for i in range(5)])
+    # ubg.append([0.0 for i in range(5)])
+    lbg.append([0.0, 0.0, 0.0, 0.0, 0.0])
+    ubg.append([0.0, 0.0, 0.0, 0.0, 0.0])
+
 
     # regularization matrix
     # equ.23
@@ -499,6 +516,7 @@ def opt_time(reftrack:      np.ndarray,
     # equ.24
     J += pars["opt_params"]["r_delta"] * reg_delta + pars["opt_params"]["r_F"] * reg_F
 
+    
     # 在casadi中，需要将所有向量展平成一维向量
     w = ca.vertcat(*w)
     g = ca.vertcat(*g)
@@ -513,28 +531,48 @@ def opt_time(reftrack:      np.ndarray,
     tf_opt = ca.vertcat(*tf_opt)
     ax_opt = ca.vertcat(*ax_opt)
     ay_opt = ca.vertcat(*ay_opt)
+    ec_opt = ca.vertcat(*ec_opt)
+    dt_opt = ca.vertcat(*dt_opt)
 
     nlp_prob = {'f': J, 'x': w, 'g': g}
-    # opts_setting = {"expand": True, "ipopt.max_iter": 2000, "ipopt.tol": 1e-7}
-    opts_setting = {'ipopt.max_iter':100, 'ipopt.print_level':0, 'print_time':0, 'ipopt.acceptable_tol':1e-8, 'ipopt.acceptable_obj_change_tol':1e-6}
+
+
+    opts_setting = {"expand": True, "ipopt.max_iter": 1000, "ipopt.tol": 1e-7}
+    # opts_setting = {'ipopt.max_iter':100, 'ipopt.print_level':0, 'print_time':0, 'ipopt.acceptable_tol':1e-8, 'ipopt.acceptable_obj_change_tol':1e-6}
     solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts_setting)
 
+    # print(g.shape, lbg.shape, ubg.shape, w.shape, lbw.shape, ubw.shape)
     res = solver(x0 = w0, lbx = lbw, ubx = ubw, lbg = lbg, ubg = ubg)
 
-    f_solution = ca.Function('f_solution', [w], [x_opt, u_opt, tf_opt, ax_opt, ay_opt, dt_opt], 
-                             ['w'], ['x_opt', 'u_opt', 'tf_opt', 'ax_opt', 'ay_opt', 'dt_opt'])
+    print("Solved")
+    for i in range(200):
+        print(res['x'][i])
     
-    x_opt, u_opt, tf_opt, ax_opt, ay_opt, dt_opt = f_solution(w = res['x'])
+    
+    # f_solution = ca.Function("f_solution", [w], [x_opt, u_opt, tf_opt, ax_opt, ay_opt, dt_opt], 
+    #                          ['w'], ['x_opt', 'u_opt', 'tf_opt', 'ax_opt', 'ay_opt', 'dt_opt'])
+    # x_opt, u_opt, tf_opt, dt_opt, ax_opt, ay_opt = f_solution(res['x'])
+
+    # f_sol = ca.Function("f_sol", [w], [x_opt, u_opt, dt_opt, tf_opt, ax_opt, ay_opt, ec_opt], 
+    #                     ['w'], ['x_opt', 'u_opt', 'dt_opt', 'tf_opt', 'ax_opt', 'ay_opt', 'ec_opt'])
+    # x_opt, u_opt, dt_opt = f_sol(res['x'])
+
+    f_sol = ca.Function('f_sol', [w], [x_opt, u_opt, tf_opt, dt_opt, ax_opt, ay_opt, ec_opt],
+                        ['w'], ['x_opt', 'u_opt', 'tf_opt', 'dt_opt', 'ax_opt', 'ay_opt', 'ec_opt'])
+
+    x_opt, u_opt, tf_opt, dt_opt, ax_opt, ay_opt, ec_opt = f_sol(res['x'])
+
     x_opt = np.reshape(x_opt, (-1, 5))
     u_opt = np.reshape(u_opt, (-1, 4))
-    # 其他无关紧要的结果先不提取出来
     t_opt = np.hstack((0.0, np.cumsum(dt_opt)))
+
     x_opt = pd.DataFrame(x_opt, columns = ['n', 'xi', 'v', 'beta', 'omega_z'])
     u_opt = pd.DataFrame(u_opt, columns = ['delta', 'f_drive', 'f_brake', 'gamma_y'])
     t_opt = pd.DataFrame(t_opt)
+
     x_opt.to_csv('./data/x_opt.csv', index = False)
     u_opt.to_csv('./data/u_opt.csv', index = False)
     t_opt.to_csv('./data/t_opt.csv', index = False)
     
     # '-'存疑
-    return -x_opt[:-1,0], x_opt[:-1,2]
+    return -x_opt.iloc[:-1,0], x_opt.iloc[:-1,2]
