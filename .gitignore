@@ -11,3 +11,4 @@
 *.blg 
 *bbl 
 *.run.pdf
+__pycache__/
