@@ -88,7 +88,7 @@ alpha_opt, v_opt = opt_time(reftrack= reftrack_interp,
 
 
 raceline_interp, a_opt, coeffs_x_opt, coeffs_y_opt, spline_inds_opt_interp, t_vals_opt_interp, s_points_opt_interp,\
-    spline_lengths_opt, el_lengths_opt_interp = tph.creat_raceline.creat_raceline(refline = reftrack_interp[:,:2],
+    spline_lengths_opt, el_lengths_opt_interp = tph.create_raceline.create_raceline(refline = reftrack_interp[:,:2],
                                                                                   normvectors = normvec_interp,
                                                                                   alpha = alpha_opt,
                                                                                   stepsize_interp = stepsize_opts["stepsize_interp_after_opt"])

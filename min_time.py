@@ -537,7 +537,7 @@ def opt_time(reftrack:      np.ndarray,
     nlp_prob = {'f': J, 'x': w, 'g': g}
 
 
-    opts_setting = {"expand": True, "ipopt.max_iter": 1000, "ipopt.tol": 1e-7}
+    opts_setting = {"expand": True, "ipopt.max_iter": 100, "ipopt.tol": 1e-7}
     # opts_setting = {'ipopt.max_iter':100, 'ipopt.print_level':0, 'print_time':0, 'ipopt.acceptable_tol':1e-8, 'ipopt.acceptable_obj_change_tol':1e-6}
     solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts_setting)
 
@@ -570,9 +570,9 @@ def opt_time(reftrack:      np.ndarray,
     u_opt = pd.DataFrame(u_opt, columns = ['delta', 'f_drive', 'f_brake', 'gamma_y'])
     t_opt = pd.DataFrame(t_opt)
 
-    x_opt.to_csv('./data/x_opt.csv', index = False)
-    u_opt.to_csv('./data/u_opt.csv', index = False)
-    t_opt.to_csv('./data/t_opt.csv', index = False)
+    # x_opt.to_csv('./data/x_opt.csv', index = False)
+    # u_opt.to_csv('./data/u_opt.csv', index = False)
+    # t_opt.to_csv('./data/t_opt.csv', index = False)
     
     # '-'存疑
     return -x_opt.iloc[:-1,0], x_opt.iloc[:-1,2]
