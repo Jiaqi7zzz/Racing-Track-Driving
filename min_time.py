@@ -281,8 +281,10 @@ def opt_time(reftrack:      np.ndarray,
     delta_max       = pars["veh_params"]["delta_max"] / delta_s
     f_drive_min     = 0.0
     f_drive_max     = pars["veh_params"]["f_drive_max"] / f_drive_s
-    f_brake_min     = 0.0
-    f_brake_max     = pars["veh_params"]["f_brake_max"] / f_brake_s
+    # f_brake_min     = 0.0
+    # f_brake_max     = pars["veh_params"]["f_brake_max"] / f_brake_s
+    f_brake_min     = -pars["veh_params"]["f_drive_max"] / f_brake_s
+    f_brake_max     = 0.0
     gamma_y_min     = -np.inf
     gamma_y_max     = np.inf
 
