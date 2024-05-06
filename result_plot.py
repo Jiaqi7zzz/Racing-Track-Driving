@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import trajectory_planning_helpers as tph
 
-def result_plot(width_veh: float,
+def result_plots(width_veh: float,
                  refline: np.ndarray,
                  bound_r: np.ndarray,
                  bound_l: np.ndarray,
@@ -31,4 +31,3 @@ def result_plot(width_veh: float,
     plt.ylabel("curvature in rad/m")
     plt.show()
     
-    return

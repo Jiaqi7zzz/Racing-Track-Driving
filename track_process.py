@@ -173,4 +173,6 @@ def calc_min_bound_dists(trajectory: np.ndarray,
         
         min_dists[i] = np.amin((fl__mindist, fr__mindist, rl__mindist, rr__mindist))
     
-    return min_dists
+        min_dist = np.min(min_dists)
+        
+    return min_dist

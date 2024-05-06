@@ -4,7 +4,7 @@ from track_process import import_track, prep_track, check_track
 from min_time import opt_time
 import pandas as pd
 import matplotlib.pyplot as plt
-import result_plot
+from result_plot import result_plots
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -20,39 +20,41 @@ pars = {"curv_calc_opts":
         "stepsize_opts": 3.0,
         "opt_params":
             {"r_delta": 10.0,
-             "r_F": 0.01,},
+             "r_F": 0.01, 
+             "w_tr_reopt":2.0},
         "veh_params":
             {"g": 9.81,
-             "mass": 1200.0,
+             "mass": 1360.0,
              "mu": 1.0,
-             "dragcoeff": 0.75,
-             "liftcoeff_front": 0.45,
-             "liftcoeff_rear": 0.75,
-             "cog_z": 0.38,
-             "wheelbase": 3.0,# wheelbase??
+             "dragcoeff": 0.3,
+             "liftcoeff_front": 0.18,
+             "liftcoeff_rear": 0.18,
+             "cog_z": 0.375,
+             "wheelbase": 2.65,# wheelbase??
              "k_roll": 0.5,
-             "width_front": 1.6,
+             "width_front": 1.65,
              "width_rear": 1.6,
              "eps_front": -0.1,
              "eps_rear": -0.1,
-             "B_front": 10.0,
-             "B_rear": 10.0,
+             "B_front": 10,
+             "B_rear": 10,
              "C_front": 2.5,
              "C_rear": 2.5,
-             "E_front": 1.0,
-             "E_rear": 1.0,
-             "f_z0": 3000.0,
+             "E_front": 1,
+             "E_rear": 1,
+             "f_z0": 3335,
              "k_brake_front": 0.6,
-             "k_drive_front": 0.6,
-             "I_z": 1200.0,
-             "wheelbase_front": 1.6,
-             "wheelbase_rear": 1.4,
+             "k_drive_front": 0.0,
+             "I_z": 1065.2,
+             "wheelbase_front": 1.455,
+             "wheelbase_rear": 1.545,
              "delta_max": 0.35,
              "delta_min": -0.35,
              "f_drive_max": 7000.0,
              "f_drive_min": -7000.0,
              "v_max": 70.0,
-             "width": 3.4,
+             "width": 2.0,
+             "length":4.7,
              "max_power": 230000.0,
              "t_delta": 0.2,
              "t_brake": 0.05,
@@ -60,7 +62,7 @@ pars = {"curv_calc_opts":
              "curvlim": 0.12,
              "c_roll": 0.013,
              "f_brake_max": 20000.0
-             }}
+             }} 
 
 reg_smooth_opts = {"k_reg": 3,
                    "s_reg": 10}
@@ -92,6 +94,33 @@ raceline_interp, a_opt, coeffs_x_opt, coeffs_y_opt, spline_inds_opt_interp, t_va
                                                                                   normvectors = normvec_interp,
                                                                                   alpha = alpha_opt,
                                                                                   stepsize_interp = stepsize_opts["stepsize_interp_after_opt"])
+
+""" raceline_mintime = reftrack_interp[:,:2] + np.expand_dims(alpha_opt, 1) * normvec_interp
+
+w_tr_right_mintime = reftrack_interp[:,2] - alpha_opt
+w_tr_left_mintime = reftrack_interp[:,3] + alpha_opt
+
+racetrack_mintime = np.column_stack((raceline_mintime, w_tr_right_mintime, w_tr_left_mintime))
+
+raceline_interp, normvec_interp, a_interp, _, _ = prep_track(reftrack= racetrack_mintime, 
+                                                       reg_smooth_opts= reg_smooth_opts,
+                                                       stepsize_opts= stepsize_opts)
+
+w_tr_tmp = 0.5 * pars["opt_params"]["w_tr_reopt"] * np.ones(reftrack_interp.shape[0])
+racetrack_mintime_reopt = np.column_stack((reftrack_interp[:,:2], w_tr_tmp, w_tr_tmp))
+
+print(np.shape(reftrack_interp))
+print(np.shape(racetrack_mintime_reopt))
+print(np.shape(normvec_interp))
+
+alpha_opt = tph.opt_min_curv.opt_min_curv(reftrack = racetrack_mintime_reopt[:-1,:], 
+                                          normvectors = normvec_interp, 
+                                          A = a_interp, 
+                                          kappa_bound = pars["veh_params"]["curvlim"],
+                                          w_veh = pars["veh_params"]["width_front"], 
+                                          print_debug = False, 
+                                          plot_debug = False) """
+
 
 # 计算航向和曲率
 psi_opt, kappa_opt, = tph.calc_head_curv_an.calc_head_curv_an(coeffs_x = coeffs_x_opt, 
@@ -136,13 +165,11 @@ trajectory_opt = np.column_stack((s_points_opt_interp,
                                   kappa_opt, 
                                   vx_profile_opt, 
                                   ax_profile_opt))
-spline_data_opt = np.column_stack((spline_inds_opt_interp, 
-                                   coeffs_x_opt, 
-                                   coeffs_y_opt))
+#spline_data_opt = np.column_stack((spline_inds_opt_interp,coeffs_x_opt, coeffs_y_opt))
 
 # 使轨迹闭合
 traj_cl = np.vstack((trajectory_opt, trajectory_opt[0,:]))
-traj_cl[-1, 0] = np.sum(spline_data_opt[:, 0]) 
+traj_cl[-1, 0] = np.sum(spline_inds_opt_interp) 
 
 # 检查轨迹
 bound_r, bound_l = check_track(reftrack = reftrack_interp, 
@@ -154,10 +181,10 @@ bound_r, bound_l = check_track(reftrack = reftrack_interp,
                                curvlim = pars["veh_params"]["curvlim"])
 
 # 导出轨迹
-export_traj_opt = pd.DataFrame(trajectory_opt, columns = ['s', 'raceline', 'psi', 'kappa', 'vx', 'ax'])
+export_traj_opt = pd.DataFrame(trajectory_opt, columns = ['s', 'raceline_x','raceline_y', 'psi', 'kappa', 'vx', 'ax'])
 export_traj_opt.to_csv("./data/trajectory.csv", index = False)
 
-result_plot(width_veh = pars["veh_params"]["width"],
+result_plots(width_veh = pars["veh_params"]["width"],
             refline = reftrack_interp[:, :2],
             bound_r = bound_r,
             bound_l = bound_l,
