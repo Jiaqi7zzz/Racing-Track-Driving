@@ -22,7 +22,8 @@ def result_plots(width_veh: float,
     plt.plot(bound_r[:, 0], bound_r[:, 1], "k-", linewidth=0.7)
     plt.plot(bound_l[:, 0], bound_l[:, 1], "k-", linewidth=0.7)
     plt.plot(trajectory[:, 1], trajectory[:, 2], "r-", linewidth=0.7)
-    
+    plt.savefig("./fig/trajectory_plot.png")
+
     # 作曲率图
     plt.figure()
     plt.plot(trajectory[:, 0], trajectory[:, 4])
