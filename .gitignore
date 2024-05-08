@@ -11,4 +11,6 @@
 *.blg 
 *bbl 
 *.run.pdf
-__pycache__/
+tempCodeRunnerFile.py
+/__pycache__/
+/.vscode/

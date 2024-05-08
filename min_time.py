@@ -3,6 +3,7 @@ import casadi as ca
 import trajectory_planning_helpers as tph
 import pandas as pd
 import tqdm
+import matplotlib.pyplot as plt
 
 def opt_time(reftrack:      np.ndarray,
              coeffs_x:      np.ndarray,
@@ -283,7 +284,8 @@ def opt_time(reftrack:      np.ndarray,
     f_drive_max     = pars["veh_params"]["f_drive_max"] / f_drive_s
     # f_brake_min     = 0.0
     # f_brake_max     = pars["veh_params"]["f_brake_max"] / f_brake_s
-    f_brake_min     = -pars["veh_params"]["f_drive_max"] / f_brake_s
+    # f_brake_min     = -pars["veh_params"]["f_drive_max"] / f_brake_s
+    f_brake_min     = -4000.0 / f_brake_s
     f_brake_max     = 0.0
     gamma_y_min     = -np.inf
     gamma_y_max     = np.inf
@@ -309,7 +311,6 @@ def opt_time(reftrack:      np.ndarray,
     f_fz      = ca.Function('f_fz', [x, u], [f_z_fl, f_z_fr, f_z_rl, f_z_rr], ['x', 'u'], ['f_z_fl', 'f_z_fr', 'f_z_rl', 'f_z_rr'])
     f_a       = ca.Function('f_a' , [x, u], [a_x, a_y], ['x', 'u'], ['a_x', 'a_y'])
     
-
     # ------------------------------------------------------------------------ #
     # --------------------------- NLP ------------------------------------- #
     # ------------------------------------------------------------------------ #
@@ -382,9 +383,6 @@ def opt_time(reftrack:      np.ndarray,
         Xk_end = D[0] * Xk # 连续性方程
         
         sf_opt = []
-        '''
-        导数怎么求的不太懂
-        '''
         for i in range(1, d + 1):
             # xp是状态变量的导数，表示状态变量的导数在当前插值点的估计值
             xp = C[0, i] * Xk
@@ -480,6 +478,16 @@ def opt_time(reftrack:      np.ndarray,
             ubg.append([delta_max / (pars["veh_params"]["t_delta"]), f_drive_max / (pars["veh_params"]["t_drive"]), np.inf, np.inf])
 
         # 此处不限制最大加速度
+        # 侧向最大加速度
+        
+        g.append(a_x_k)
+        lbg.append([-0.4 * gravity])
+        ubg.append([0.4 * gravity])
+        # 纵向最大加速度
+        g.append(a_y_k)
+        lbg.append([-0.27 * gravity])
+        ubg.append([0.4 * gravity])
+
 
         # 正则化项
         delta_p.append(Uk[0] * delta_s)
@@ -539,16 +547,16 @@ def opt_time(reftrack:      np.ndarray,
     nlp_prob = {'f': J, 'x': w, 'g': g}
 
 
-    opts_setting = {"expand": True, "ipopt.max_iter": 100, "ipopt.tol": 1e-7}
+    opts_setting = {"expand": True, "ipopt.max_iter": 1000, "ipopt.tol": 1e-7}
     # opts_setting = {'ipopt.max_iter':100, 'ipopt.print_level':0, 'print_time':0, 'ipopt.acceptable_tol':1e-8, 'ipopt.acceptable_obj_change_tol':1e-6}
     solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts_setting)
 
     # print(g.shape, lbg.shape, ubg.shape, w.shape, lbw.shape, ubw.shape)
     res = solver(x0 = w0, lbx = lbw, ubx = ubw, lbg = lbg, ubg = ubg)
 
-    print("Solved")
-    for i in range(200):
-        print(res['x'][i])
+    # print("Solved")
+    # for i in range(200):
+    #     print(res['x'][i])
     
     
     # f_solution = ca.Function("f_solution", [w], [x_opt, u_opt, tf_opt, ax_opt, ay_opt, dt_opt], 
@@ -566,15 +574,28 @@ def opt_time(reftrack:      np.ndarray,
 
     x_opt = np.reshape(x_opt, (-1, 5))
     u_opt = np.reshape(u_opt, (-1, 4))
-    t_opt = np.hstack((0.0, np.cumsum(dt_opt)))
+    t_opt = np.cumsum(dt_opt)
+    tf_opt = np.reshape(tf_opt, (-1, 12))
 
     x_opt = pd.DataFrame(x_opt, columns = ['n', 'xi', 'v', 'beta', 'omega_z'])
     u_opt = pd.DataFrame(u_opt, columns = ['delta', 'f_drive', 'f_brake', 'gamma_y'])
     t_opt = pd.DataFrame(t_opt)
+    tf_opt = pd.DataFrame(tf_opt, columns = ['x_fl', 'y_fl', 'z_fl', 'x_fr', 'y_fr', 'z_fr', 'x_rl', 'y_rl', 'z_rl', 'x_rr', 'y_rr', 'z_rr'])
 
     x_opt.to_csv('./data/x_opt.csv', index = False)
     u_opt.to_csv('./data/u_opt.csv', index = False)
     t_opt.to_csv('./data/t_opt.csv', index = False)
-    
+    tf_opt.to_csv('./data/tf_opt.csv', index = False)
+
+    def plot_f_y():
+        alpha = np.linspace(-np.pi / 2, np.pi / 2, 100)
+        f_z_fl_t = [2000, 4000, 6000, 8000]
+        for i in range(len(f_z_fl_t)):
+            f_y_fl_t = (pars["veh_params"]["mu"] * f_z_fl_t[i] * (1 + pars["veh_params"]["eps_front"] * f_z_fl_t[i] / pars["veh_params"]["f_z0"])
+                * np.sin(pars["veh_params"]["C_front"] * np.arctan(pars["veh_params"]["B_front"] * alpha - pars["veh_params"]["E_front"]
+                                                    * (pars["veh_params"]["B_front"] * alpha - np.arctan(pars["veh_params"]["B_front"] * alpha)))))
+            plt.plot(alpha, f_y_fl_t)
+        plt.show()
+
     # '-'存疑
     return -x_opt.iloc[:-1,0], x_opt.iloc[:-1,2]

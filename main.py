@@ -156,7 +156,8 @@ plt.grid()
 plt.xlabel("distance in m")
 plt.legend(["vx in m/s", "ax in m/s2"])
 
-plt.show()
+# plt.show()
+plt.savefig("./fig/vx_ax.png")
 
 # 数据处理
 trajectory_opt = np.column_stack((s_points_opt_interp, 

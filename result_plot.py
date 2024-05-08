@@ -29,5 +29,6 @@ def result_plots(width_veh: float,
     plt.grid()
     plt.xlabel("distance in m")
     plt.ylabel("curvature in rad/m")
-    plt.show()
+#     plt.show()
+    plt.savefig("./fig/result_plot.png")
     
