@@ -7,10 +7,64 @@ import matplotlib.pyplot as plt
 from result_plot import result_plots
 import warnings
 
+itertimes = 200
 warnings.filterwarnings("ignore")
 # 设置路径导入选项
 import_track_opts = {"flip_imp_track": False,
                     }
+
+# pars = {"curv_calc_opts":
+#             {"stepsize_curv_preview": 2.0,
+#              "stepsize_curv_review": 2.0,
+#              "stepsize_psi_preview": 1.0,
+#              "stepsize_psi_review": 1.0},
+#         "stepsize_opts": 3.0,
+#         "opt_params":
+#             {"r_delta": 10.0,
+#              "r_F": 0.01, 
+#              "w_tr_reopt":2.0},
+#         "veh_params":
+#             {"g": 9.81,
+#              "mass": 1360.0,
+#              "mu": 1.0,
+#              "dragcoeff": 0.3,
+#              "liftcoeff_front": 0.18,
+#              "liftcoeff_rear": 0.18,
+#              "cog_z": 0.375,
+#              "wheelbase": 2.65,# wheelbase??
+#              "k_roll": 0.5,
+#              "width_front": 1.65,
+#              "width_rear": 1.6,
+#              "eps_front": -0.1,
+#              "eps_rear": -0.1,
+#              "B_front": 10,
+#              "B_rear": 10,
+#              "C_front": 2.5,
+#              "C_rear": 2.5,
+#              "E_front": 1,
+#              "E_rear": 1,
+#              "f_z0": 3335,
+#              "k_brake_front": 0.6,
+#              "k_drive_front": 0.0,
+#              "I_z": 1065.2,
+#              "wheelbase_front": 1.455,
+#              "wheelbase_rear": 1.545,
+#              "delta_max": 0.35,
+#              "delta_min": -0.35,
+#              "f_drive_max": 7000.0,
+#              "f_drive_min": -7000.0,
+#              "v_max": 70.0,
+#              "width": 2.0,
+#              "length":4.7,
+#              "max_power": 230000.0,
+#              "t_delta": 0.2,
+#              "t_brake": 0.05,
+#              "t_drive": 0.05,
+#              "curvlim": 0.12,
+#              "c_roll": 0.013,
+#              "f_brake_max": 20000.0
+#              }} 
+
 
 pars = {"curv_calc_opts":
             {"stepsize_curv_preview": 2.0,
@@ -64,6 +118,7 @@ pars = {"curv_calc_opts":
              "f_brake_max": 20000.0
              }} 
 
+
 reg_smooth_opts = {"k_reg": 3,
                    "s_reg": 10}
 
@@ -86,7 +141,8 @@ reftrack_interp, normvec_interp, a_interp, coeffs_x, coeffs_y = prep_track(reftr
 alpha_opt, v_opt = opt_time(reftrack= reftrack_interp,
                              coeffs_x= coeffs_x,
                              coeffs_y= coeffs_y,
-                             pars= pars)
+                             pars= pars,
+                             itertimes= itertimes)
 
 
 raceline_interp, a_opt, coeffs_x_opt, coeffs_y_opt, spline_inds_opt_interp, t_vals_opt_interp, s_points_opt_interp,\

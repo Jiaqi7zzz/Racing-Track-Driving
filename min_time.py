@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 def opt_time(reftrack:      np.ndarray,
              coeffs_x:      np.ndarray,
              coeffs_y:      np.ndarray,
-             pars:          dict
+             pars:          dict,
+             itertimes:     int
              )       ->     tuple:
     
     # ------------------------------------------------------------------------ #
@@ -479,12 +480,11 @@ def opt_time(reftrack:      np.ndarray,
 
         # 此处不限制最大加速度
         # 侧向最大加速度
-        
-        g.append(a_x_k)
+        g.append(a_y_k)
         lbg.append([-0.4 * gravity])
         ubg.append([0.4 * gravity])
         # 纵向最大加速度
-        g.append(a_y_k)
+        g.append(a_x_k)
         lbg.append([-0.27 * gravity])
         ubg.append([0.4 * gravity])
 
@@ -547,7 +547,7 @@ def opt_time(reftrack:      np.ndarray,
     nlp_prob = {'f': J, 'x': w, 'g': g}
 
 
-    opts_setting = {"expand": True, "ipopt.max_iter": 1000, "ipopt.tol": 1e-7}
+    opts_setting = {"expand": True, "ipopt.max_iter": itertimes, "ipopt.tol": 1e-7}
     # opts_setting = {'ipopt.max_iter':100, 'ipopt.print_level':0, 'print_time':0, 'ipopt.acceptable_tol':1e-8, 'ipopt.acceptable_obj_change_tol':1e-6}
     solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts_setting)
 
@@ -576,16 +576,24 @@ def opt_time(reftrack:      np.ndarray,
     u_opt = np.reshape(u_opt, (-1, 4))
     t_opt = np.cumsum(dt_opt)
     tf_opt = np.reshape(tf_opt, (-1, 12))
+    ax_opt = np.reshape(ax_opt, (-1, 1))
+    ay_opt = np.reshape(ay_opt, (-1, 1))
+
 
     x_opt = pd.DataFrame(x_opt, columns = ['n', 'xi', 'v', 'beta', 'omega_z'])
     u_opt = pd.DataFrame(u_opt, columns = ['delta', 'f_drive', 'f_brake', 'gamma_y'])
     t_opt = pd.DataFrame(t_opt)
     tf_opt = pd.DataFrame(tf_opt, columns = ['x_fl', 'y_fl', 'z_fl', 'x_fr', 'y_fr', 'z_fr', 'x_rl', 'y_rl', 'z_rl', 'x_rr', 'y_rr', 'z_rr'])
+    ax_opt = pd.DataFrame(ax_opt)
+    ay_opt = pd.DataFrame(ay_opt)
 
     x_opt.to_csv('./data/x_opt.csv', index = False)
     u_opt.to_csv('./data/u_opt.csv', index = False)
     t_opt.to_csv('./data/t_opt.csv', index = False)
     tf_opt.to_csv('./data/tf_opt.csv', index = False)
+    ax_opt.to_csv('./data/ax_opt.csv', index = False)
+    ay_opt.to_csv('./data/ay_opt.csv', index = False)
+
 
     def plot_f_y():
         alpha = np.linspace(-np.pi / 2, np.pi / 2, 100)
@@ -594,8 +602,11 @@ def opt_time(reftrack:      np.ndarray,
             f_y_fl_t = (pars["veh_params"]["mu"] * f_z_fl_t[i] * (1 + pars["veh_params"]["eps_front"] * f_z_fl_t[i] / pars["veh_params"]["f_z0"])
                 * np.sin(pars["veh_params"]["C_front"] * np.arctan(pars["veh_params"]["B_front"] * alpha - pars["veh_params"]["E_front"]
                                                     * (pars["veh_params"]["B_front"] * alpha - np.arctan(pars["veh_params"]["B_front"] * alpha)))))
-            plt.plot(alpha, f_y_fl_t)
+            plt.plot(alpha, f_y_fl_t, label = 'f_y = ' + str(f_z_fl_t[i]))
+        plt.legend()
+        plt.grid(True)
         plt.show()
 
+    # plot_f_y()
     # '-'存疑
     return -x_opt.iloc[:-1,0], x_opt.iloc[:-1,2]
