@@ -391,7 +391,7 @@ def opt_time(reftrack:      np.ndarray,
                 xp += C[j + 1, i] * Xc[j]
             
             # 当前插值点的曲率
-            kappa_col = kappa_interp(k + tau[j])
+            kappa_col = kappa_interp(k + tau[i])
 
             # f_dynamic计算[x, u, kappa] -> [dx, sf]
             dx_temp, sf_temp = f_dynamic(Xc[i - 1], Uk, kappa_col)

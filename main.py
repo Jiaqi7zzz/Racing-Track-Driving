@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from result_plot import result_plots
 import warnings
 
-itertimes = 200
+itertimes = 1000
 warnings.filterwarnings("ignore")
 # 设置路径导入选项
 import_track_opts = {"flip_imp_track": False,
